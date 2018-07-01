@@ -47,10 +47,6 @@ double primary(); // numbers, (), variables and functions
 void clean_up_mess(); // error handler
 
 // Variables
-double get_value(string s);
-void set_value(string s, double d); 
-bool is_declared(string var_name); // is in var_table?
-double define_name(string var, double val, char type); // add into var_table vector
 double declaration(char type);
 
 double name_handler(); // function and vars handller
@@ -104,10 +100,74 @@ public:
 };
 
 
+class Symbol_table
+{
+public:
+	double get(string s);
+	void set(string s, double d);
+	bool is_declared(string s);
+	void declare_name(string s, double d, char type);
+private:
+	vector<Variable> var_table;
+};
 
+TokenStream ts;
+Symbol_table st;
+vector<string> func_table;
 
 
 // CLASS IMPLEMINTATIONS
+void Symbol_table::set(string name, double d)
+{
+	for(int i = 0; i < var_table.size(); ++i)
+	{
+		if(var_table[i].name == name)
+		{
+			if(var_table[i].is_const())
+			{	
+				Error("This variable is constant!");
+			}
+			else
+			{
+				var_table[i].value = d;
+				return;
+			}
+		}
+	
+	}
+	Error("set: undefined variable ", name);
+
+}
+
+double Symbol_table::get(string name)
+{
+		for(int i = 0; i < var_table.size(); i++)
+		{
+			if(var_table[i].name == name)
+				return var_table[i].value;
+		}	
+		Error("get: undefined variable ", name);
+
+}
+
+bool Symbol_table::is_declared(string name)
+{
+	for(int i = 0; i < var_table.size(); ++i)
+	{
+		if(var_table[i].name == name)
+			return true;
+	}
+	return false;
+}
+
+void Symbol_table::declare_name(string s, double value, char type)
+{
+	if(is_declared(s)) Error("This name already defined!");
+	if(is_func(s)) Error("This name already defined!!");
+	var_table.push_back(Variable(s, value, type));
+}
+	
+
 bool Variable::is_const()
 {
 	if(type == 'C') return true;
@@ -187,9 +247,6 @@ Token TokenStream::get() // Get a Token from a stream
 }
  
 
-TokenStream ts;
-vector<Variable> var_table;
-vector<string> func_table;
 
 // Two logical parts of programm:
 // 1. main() function describe begining and ending of the program
@@ -207,7 +264,7 @@ int main()
 	{
 		define_func("sqrt");
 		define_func("pow");
-		define_name("pi", 3.14, 'C');
+		st.declare_name("pi", 3.14, 'C');
 
 		calculate(); // Calculating loop
 
@@ -394,16 +451,16 @@ double primary()
 double name_handler()
 {
 	Token t = ts.get();
-	if(is_declared(t.name)) // if a variable
+	if(st.is_declared(t.name)) // if a variable
 	{
 		Token t1 = ts.get();
 		if(t1.kind == '=') // assignment
 		{
-			set_value(t.name, expression());
-			return get_value(t.name);	
+			st.set(t.name, expression());
+			return st.get(t.name);	
 		}
 		ts.putback(t1);
-		return get_value(t.name); 
+		return st.get(t.name); 
 	}	
 	else if(is_func(t.name))
 	{
@@ -440,56 +497,6 @@ void clean_up_mess()
 
 }
 
-double get_value(string s)
-{
-	for(int i = 0; i < var_table.size(); i++)
-	{
-		if(var_table[i].name == s)
-			return var_table[i].value;
-	}	
-	Error("get: undefined variable ", s);
-
-}
-
-void set_value(string s, double d)
-{
-	for(int i = 0; i < var_table.size(); ++i)
-	{
-		if(var_table[i].name == s)
-		{
-			if(var_table[i].is_const())
-			{	
-				Error("This variable is constant!");
-			}
-			else
-			{
-				var_table[i].value = d;
-			}
-		}
-	
-	}
-			Error("set: undefined variable ", s);
-
-}
-
-bool is_declared(string var_name)
-{
-	for(int i = 0; i < var_table.size(); ++i)
-		if(var_table[i].name == var_name) return true;
-		
-	return false;
-	
-
-}
-
-double define_name(string var, double val, char type)
-{
-	if(is_declared(var)) Error(var, " declared twice!");
-	var_table.push_back(Variable(var, val, type));
-	return val;
-
-}
-
 
 double statement()
 {
@@ -516,7 +523,7 @@ double declaration(char type)
 	Token t2 = ts.get();
 	if(t2.kind != '=') Error("'=' expected!");
 	double d = expression();
-	define_name(var_name, d, type);
+	st.declare_name(var_name, d, type);
 	return d;
 }
 

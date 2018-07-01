@@ -28,32 +28,32 @@ const string result = "= ";
 
 const char let = 'L';
 const char constkey = 'C';
+
 const char name = 'a';
+
 const string declkey = "let";
 const string constdeclkey = "const";
-
-const char func = 'f';
 
 
 // PROTOTYPES
 void calculate();
 
 double statement();
-double expression();
-double term();
-double spec();
-double primary();
+double expression(); // +, -
+double term(); // *, /, %
+double spec(); // !
+double primary(); // numbers, (), variables and functions
 
-void clean_up_mess();
+void clean_up_mess(); // error handler
 
 // Variables
 double get_value(string s);
-void set_value(string s, double d);
-bool is_declared(string var_name);
-double define_name(string var, double val, char type);
+void set_value(string s, double d); 
+bool is_declared(string var_name); // is in var_table?
+double define_name(string var, double val, char type); // add into var_table vector
 double declaration(char type);
 
-double name_handler();
+double name_handler(); // function and vars handller
 
 //Functions
 bool is_func(string);
@@ -83,7 +83,7 @@ class TokenStream
 {
 public:
 	TokenStream();
-	Token get();
+	Token get(); // get from stream 
 	void putback(Token t);
 	void ignore(char c);
 private:
@@ -244,7 +244,7 @@ void calculate() // Calculating loop
 		cout << result << statement() << endl;
 	}catch(exception& e)
 	{
-		cerr << "Exception handler in void calculate();!\n"; // DEBUG!@
+		cerr << "Exception handler in calculate();!\n"; // DEBUG!@
 		cerr << e.what() << endl;
 		clean_up_mess();
 	}

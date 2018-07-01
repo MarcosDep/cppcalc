@@ -386,7 +386,6 @@ double primary()
 				ts.putback(t);
 				return name_handler();
 			}
-			cout << t.kind << endl;
 			Error("Primary expression expected!");
 		}
 	}
@@ -432,7 +431,7 @@ double name_handler()
 			return pow(d1, d2);
 		}
 	}
-	return 2;
+	Error("Invalid name!");
 }
 
 void clean_up_mess()

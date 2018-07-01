@@ -27,8 +27,10 @@ const string prompt = "> ";
 const string result = "= ";
 
 const char let = 'L';
+const char constkey = 'C';
 const char name = 'a';
 const string declkey = "let";
+const string constdeclkey = "const";
 
 const char func = 'f';
 
@@ -48,13 +50,14 @@ void clean_up_mess();
 double get_value(string s);
 void set_value(string s, double d);
 bool is_declared(string var_name);
-double define_name(string var, double val);
-double declaration();
+double define_name(string var, double val, char type);
+double declaration(char type);
 
 double name_handler();
 
 //Functions
-bool is_function();
+bool is_func(string);
+void define_func(string);
 
 // CLASS DEFENITIONS
 
@@ -92,14 +95,25 @@ private:
 class Variable
 {
 public:
+	Variable(string n, double v, char s):
+		name(n), value(v), type(s){}
+	bool is_const();
 	string name;
 	double value;
-	Variable(string n, double v):
-		name(n), value(v){}
-
+	char type;
 };
 
+
+
+
+
 // CLASS IMPLEMINTATIONS
+bool Variable::is_const()
+{
+	if(type == 'C') return true;
+	return false;
+}
+
 
 TokenStream::TokenStream():
 full(false), buffer(0){}
@@ -161,6 +175,7 @@ Token TokenStream::get() // Get a Token from a stream
 				}
 				cin.putback(ch);
 				if(s == declkey) return Token(let); // 'let' statement
+				else if(s == constdeclkey) return Token(constkey);
 				else if(s == quitkey) return Token(quit); // 'exit' statement
 				return Token(name, s); // variable name
 				
@@ -174,7 +189,7 @@ Token TokenStream::get() // Get a Token from a stream
 
 TokenStream ts;
 vector<Variable> var_table;
-
+vector<string> func_table;
 
 // Two logical parts of programm:
 // 1. main() function describe begining and ending of the program
@@ -190,7 +205,9 @@ int main()
 		<< "\tType an expression(Example: 2+2*2):\n ";
 	try
 	{
-		define_name("pi", 3.14);
+		define_func("sqrt");
+		define_func("pow");
+		define_name("pi", 3.14, 'C');
 
 		calculate(); // Calculating loop
 
@@ -369,6 +386,7 @@ double primary()
 				ts.putback(t);
 				return name_handler();
 			}
+			cout << t.kind << endl;
 			Error("Primary expression expected!");
 		}
 	}
@@ -388,6 +406,32 @@ double name_handler()
 		ts.putback(t1);
 		return get_value(t.name); 
 	}	
+	else if(is_func(t.name))
+	{
+		if(t.name == "sqrt")
+		{
+			Token t1 = ts.get();
+			if(t1.kind != '(') Error("'(' expected!");
+			double d = expression();
+			t1 = ts.get();
+			if(t1.kind != ')') Error("')' expected!");
+			return sqrt(d);
+		}
+		else if(t.name == "pow")
+		{
+			Token t1 = ts.get();
+			if(t1.kind != '(') Error("'(' expected!");
+			double d1 = expression();
+			t1 = ts.get();
+			if(t1.kind != ',') Error("Not enough arguments!");
+			double d2 = expression();
+			t1 = ts.get();
+			if(t1.kind != ')') Error("')' expected!");
+			int iTest = int(d2);
+			if(d2 != iTest) Error("2d argument is not an integer!");
+			return pow(d1, d2);
+		}
+	}
 	return 2;
 }
 
@@ -414,14 +458,18 @@ void set_value(string s, double d)
 	{
 		if(var_table[i].name == s)
 		{
-			var_table[i].value = d;
-			return;
+			if(var_table[i].is_const())
+			{	
+				Error("This variable is constant!");
+			}
+			else
+			{
+				var_table[i].value = d;
+			}
 		}
-		else
-			Error("set: undefined variable ", s);
 	
 	}
-
+			Error("set: undefined variable ", s);
 
 }
 
@@ -435,10 +483,10 @@ bool is_declared(string var_name)
 
 }
 
-double define_name(string var, double val)
+double define_name(string var, double val, char type)
 {
 	if(is_declared(var)) Error(var, " declared twice!");
-	var_table.push_back(Variable(var, val));
+	var_table.push_back(Variable(var, val, type));
 	return val;
 
 }
@@ -450,7 +498,9 @@ double statement()
 	switch(t.kind)
 	{
 		case let:
-			return declaration();
+			return declaration(let);
+		case constkey:
+			return declaration(constkey);
 		default:
 			ts.putback(t);
 			return expression();
@@ -459,21 +509,30 @@ double statement()
 }
 
 
-double declaration()
+double declaration(char type)
 {
 	Token t = ts.get();
 	if(t.kind != name) Error("'Name' expected!");
-	string var_name = t.name;
+	string var_name = t.name; 
 	Token t2 = ts.get();
 	if(t2.kind != '=') Error("'=' expected!");
 	double d = expression();
-	define_name(var_name, d);
+	define_name(var_name, d, type);
 	return d;
 }
 
 
-bool is_function()
+bool is_func(string func_name)
 {
-	
+	for(int i = 0; i < func_table.size(); ++i)
+	{
+		if(func_table[i] == func_name)
+			return true;
+	}
 	return false;
+}
+
+void define_func(string name)
+{
+	func_table.push_back(name);
 }

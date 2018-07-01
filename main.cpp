@@ -35,17 +35,26 @@ const char func = 'f';
 
 // PROTOTYPES
 void calculate();
+
+double statement();
 double expression();
 double term();
 double spec();
 double primary();
+
 void clean_up_mess();
+
+// Variables
 double get_value(string s);
 void set_value(string s, double d);
 bool is_declared(string var_name);
 double define_name(string var, double val);
-double statement();
 double declaration();
+
+double name_handler();
+
+//Functions
+bool is_function();
 
 // CLASS DEFENITIONS
 
@@ -151,9 +160,9 @@ Token TokenStream::get() // Get a Token from a stream
 					s += ch;
 				}
 				cin.putback(ch);
-				if(s == declkey) return Token(let);
-				else if(s == quitkey) return Token(quit);
-				return Token(name, s);
+				if(s == declkey) return Token(let); // 'let' statement
+				else if(s == quitkey) return Token(quit); // 'exit' statement
+				return Token(name, s); // variable name
 				
 			}
 			Error("Invalid lexem!");	
@@ -357,19 +366,30 @@ double primary()
 		{
 			if(t.kind == name)
 			{
-				for(int i = 0; i < var_table.size(); i++)
-				{
-					if(var_table[i].name == t.name)
-					{
-						return var_table[i].value;
-					}
-				}
+				ts.putback(t);
+				return name_handler();
 			}
-
+			Error("Primary expression expected!");
 		}
 	}
 }
 
+double name_handler()
+{
+	Token t = ts.get();
+	if(is_declared(t.name)) // if a variable
+	{
+		Token t1 = ts.get();
+		if(t1.kind == '=') // assignment
+		{
+			set_value(t.name, expression());
+			return get_value(t.name);	
+		}
+		ts.putback(t1);
+		return get_value(t.name); 
+	}	
+	return 2;
+}
 
 void clean_up_mess()
 {
@@ -383,9 +403,8 @@ double get_value(string s)
 	{
 		if(var_table[i].name == s)
 			return var_table[i].value;
-		else
-			Error("get: undefined variable ", s);
-	}
+	}	
+	Error("get: undefined variable ", s);
 
 }
 
@@ -452,3 +471,9 @@ double declaration()
 	return d;
 }
 
+
+bool is_function()
+{
+	
+	return false;
+}

@@ -28,6 +28,7 @@ const string result = "= ";
 
 const char let = 'L';
 const char constkey = 'C';
+const char func = 'F';
 
 const char name = 'a';
 
@@ -51,9 +52,6 @@ double declaration(char type);
 
 double name_handler(); // function and vars handller
 
-//Functions
-bool is_func(string);
-void define_func(string);
 
 // CLASS DEFENITIONS
 
@@ -99,24 +97,64 @@ public:
 	char type;
 };
 
+// Function
+class Function
+{
+public:
+	string name;
+	int args_count;
+	Function(string s, int i):
+		name(s), args_count(i){}
 
+};
+//Symbol table
 class Symbol_table
 {
 public:
-	double get(string s);
-	void set(string s, double d);
-	bool is_declared(string s);
-	void declare_name(string s, double d, char type);
+	double get(string s); // var value
+	void set(string s, double d); // set var value
+	bool is_declared(string s); // is var defined?
+	void declare_name(string s, double d, char type); // define var
+
+	bool is_func(string s); // is func defined?
+	void define_func(string, int); // define func
+	int get_args(string s); // get func args
+
 private:
+	vector<Function> func_table;
 	vector<Variable> var_table;
 };
 
 TokenStream ts;
 Symbol_table st;
-vector<string> func_table;
-
 
 // CLASS IMPLEMINTATIONS
+int Symbol_table::get_args(string s)
+{
+	for(int i = 0; i < func_table.size(); ++i)
+	{
+		if(func_table[i].name == s) return func_table[i].args_count;
+	}
+	Error("get_args: undefined function ", s);
+		
+}
+
+
+void Symbol_table::define_func(string s, int i)
+{
+	if(is_func(s)) Error(s," function already defined!");
+	func_table.push_back(Function(s, i));	
+}
+
+bool Symbol_table::is_func(string s)
+{
+	for(int i = 0; i < func_table.size(); ++i)
+	{
+		if(func_table[i].name == s) return true;
+	}
+	return false;
+}
+
 void Symbol_table::set(string name, double d)
 {
 	for(int i = 0; i < var_table.size(); ++i)
@@ -165,6 +203,7 @@ void Symbol_table::declare_name(string s, double value, char type)
 	if(is_declared(s)) Error("This name already defined!");
 	if(is_func(s)) Error("This name already defined!!");
 	var_table.push_back(Variable(s, value, type));
+	
 }
 	
 
@@ -262,8 +301,8 @@ int main()
 		<< "\tType an expression(Example: 2+2*2):\n ";
 	try
 	{
-		define_func("sqrt");
-		define_func("pow");
+		st.define_func("sqrt", 1);
+		st.define_func("pow", 2);
 		st.declare_name("pi", 3.14, 'C');
 
 		calculate(); // Calculating loop
@@ -462,32 +501,33 @@ double name_handler()
 		ts.putback(t1);
 		return st.get(t.name); 
 	}	
-	else if(is_func(t.name))
+	else if(st.is_func(t.name))
 	{
+		vector<double> arguments; // arguments list
+		int args_count = st.get_args(t.name); // how many args should be?
+		
+		Token t1 = ts.get();
+		if(t1.kind != '(') Error("'(' expected!"); // syntax check
+		while(t1.kind != ')')
+		{
+			arguments.push_back(expression());
+			t1 = ts.get();
+			if(t1.kind != ',') break;
+			
+		}
+		if(t1.kind != ')') Error("')' expected!"); 
+		if(arguments.size() != args_count) Error("Invalid number of arguments!");
+
 		if(t.name == "sqrt")
 		{
-			Token t1 = ts.get();
-			if(t1.kind != '(') Error("'(' expected!");
-			double d = expression();
-			t1 = ts.get();
-			if(t1.kind != ')') Error("')' expected!");
-			return sqrt(d);
+			return sqrt(arguments[0]);
 		}
 		else if(t.name == "pow")
 		{
-			Token t1 = ts.get();
-			if(t1.kind != '(') Error("'(' expected!");
-			double d1 = expression();
-			t1 = ts.get();
-			if(t1.kind != ',') Error("Not enough arguments!");
-			double d2 = expression();
-			t1 = ts.get();
-			if(t1.kind != ')') Error("')' expected!");
-			int iTest = int(d2);
-			if(d2 != iTest) Error("2d argument is not an integer!");
-			return pow(d1, d2);
+			return pow(arguments[0], arguments[1]);
 		}
-	}
+	
+	}	
 	Error("Invalid name!");
 }
 
@@ -528,17 +568,3 @@ double declaration(char type)
 }
 
 
-bool is_func(string func_name)
-{
-	for(int i = 0; i < func_table.size(); ++i)
-	{
-		if(func_table[i] == func_name)
-			return true;
-	}
-	return false;
-}
-
-void define_func(string name)
-{
-	func_table.push_back(name);
-}

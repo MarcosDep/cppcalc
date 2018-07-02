@@ -41,7 +41,7 @@ void calculate();
 
 double statement();
 double expression(); // +, -
-double term(); // *, /, %
+double term(); // *, /, %2
 double spec(); // !
 double primary(); // numbers, (), variables and functions
 
